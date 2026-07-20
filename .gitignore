@@ -1,0 +1,20 @@
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Submodules / Temporary folders
+Private_bot/
+
+# Environment & API keys
+.env
+.env.local
+*.key
+
+# Operating System & IDE Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# System generated logs
+*.log
