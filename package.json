@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Amberleigh Private Bank Corporate Concierge Virtual Assistant & Policy Portal",
   "scripts": {
-    "start": "node server.js",
-    "build": "echo 'Build complete'"
+    "build": "echo 'Build complete'",
+    "start-local": "node server.js"
   },
   "keywords": [
     "banking",
