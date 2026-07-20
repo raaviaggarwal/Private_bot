@@ -6,6 +6,9 @@
     "build": "echo 'Build complete'",
     "start-local": "node server.js"
   },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
   "keywords": [
     "banking",
     "chatbot",

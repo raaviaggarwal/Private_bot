@@ -1,11 +1,31 @@
 // Chat Session, History, and Gemini API Client Module
-import { CONVERSATIONS_KEY, GEMINI_KEY_STORAGE, ACTIVE_GEMINI_MODEL } from './config.js';
+import { CONVERSATIONS_KEY, GEMINI_KEY_STORAGE, ACTIVE_GEMINI_MODEL, setAdminPasscode } from './config.js';
 
 export let geminiApiKey = "";
 export let activeGeminiModel = ACTIVE_GEMINI_MODEL;
 
 export function setGeminiApiKey(key) {
   geminiApiKey = key;
+}
+
+export async function fetchServerConfig() {
+  try {
+    const response = await fetch('/api/config');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.geminiApiKey) {
+        geminiApiKey = data.geminiApiKey;
+      }
+      if (data.adminPasscode) {
+        setAdminPasscode(data.adminPasscode);
+      }
+      console.log("Loaded configurations securely from .env API endpoint");
+      return true;
+    }
+  } catch (err) {
+    // Fail silently when running statically without Node server (e.g. Vercel)
+  }
+  return false;
 }
 
 export function initGeminiKey(inputElement, statusElement, clearButton) {
@@ -15,8 +35,10 @@ export function initGeminiKey(inputElement, statusElement, clearButton) {
   try {
     let key = localStorage.getItem(GEMINI_KEY_STORAGE);
     if (!key) {
-      key = defaultKey;
-      localStorage.setItem(GEMINI_KEY_STORAGE, key);
+      key = geminiApiKey || defaultKey;
+      if (key !== defaultKey && !localStorage.getItem(GEMINI_KEY_STORAGE)) {
+        localStorage.setItem(GEMINI_KEY_STORAGE, key);
+      }
     }
     
     geminiApiKey = key;
@@ -25,7 +47,7 @@ export function initGeminiKey(inputElement, statusElement, clearButton) {
     if (clearButton) clearButton.style.display = "inline-block";
   } catch (e) {
     console.warn("localStorage read blocked for Gemini key. Using fallback.", e);
-    geminiApiKey = defaultKey;
+    geminiApiKey = geminiApiKey || defaultKey;
   }
 }
 

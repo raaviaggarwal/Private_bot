@@ -1,6 +1,7 @@
 // Node.js Backend Server for Amberleigh Private Bank Assistant Portal
-// Serves web assets and live policy JSON files from the /data directory.
+// Serves web assets, configuration API, and live policy JSON files from the /data directory.
 
+require('dotenv').config();
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -24,6 +25,21 @@ const server = http.createServer((req, res) => {
   
   // Clean URL path
   let safePath = req.url.split('?')[0];
+  
+  // API Endpoint: Serve env configurations securely to the local frontend client
+  if (safePath === '/api/config') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+    res.end(JSON.stringify({
+      geminiApiKey: process.env.GEMINI_API_KEY || "",
+      adminPasscode: process.env.ADMIN_PASSCODE || "DBAdmin2026"
+    }), 'utf-8');
+    return;
+  }
+  
   if (safePath === '/') safePath = '/index.html';
   
   const filePath = path.join(__dirname, safePath);

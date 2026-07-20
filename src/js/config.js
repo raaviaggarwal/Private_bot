@@ -31,4 +31,9 @@ export const ICONS = {
 export const CONVERSATIONS_KEY = 'db_chatbot_conversations';
 export const GEMINI_KEY_STORAGE = 'db_chatbot_gemini_key';
 export const ACTIVE_GEMINI_MODEL = 'models/gemini-flash-latest';
-export const ADMIN_PASSCODE = 'DBAdmin2026';
+export let ADMIN_PASSCODE = 'DBAdmin2026';
+export function setAdminPasscode(passcode) {
+  if (passcode) {
+    ADMIN_PASSCODE = passcode;
+  }
+}

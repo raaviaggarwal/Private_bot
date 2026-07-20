@@ -5,7 +5,8 @@ import {
   geminiApiKey, 
   initGeminiKey, 
   callGeminiAPI, 
-  getGenericResponse 
+  getGenericResponse,
+  fetchServerConfig
 } from './chat.js';
 import { 
   elements, 
@@ -33,14 +34,17 @@ let kbData = {};
 
 // Bootstrapping the Application
 async function init() {
-  // 1. Fetch live corporate policy database
+  // 1. Fetch configurations securely from local .env if available
+  await fetchServerConfig();
+
+  // 2. Fetch live corporate policy database
   kbData = await KnowledgeBase.loadFromBackend();
   
-  // 2. Initialize UI Components
+  // 3. Initialize UI Components
   renderSidebar(kbData);
   renderRecentChats(loadChatSession, deleteChatSession);
   
-  // 3. Initialize Gemini Integration Key
+  // 4. Initialize Gemini Integration Key
   initGeminiKey(elements.inputGeminiKey, elements.keyStatusText, elements.btnClearGeminiKey);
   
   // 4. Register event listeners
@@ -219,7 +223,7 @@ function handleChatSubmit() {
         let sourceToCite = null;
         
         if (localMatch) {
-          const systemInstruction = "Instruction: You are the Amberleigh Private Bank Virtual Concierge. Answer the user's question directly, accurately, and thoroughly in clear paragraph form. Start your answer immediately with the exact information requested, followed by a complete and detailed explanation of all relevant rules, thresholds, and guidelines. Keep your tone professional, helpful, and conversational. Do not write manual 'Source:' text at the end as the UI displays a dedicated source badge.";
+          const systemInstruction = "Instruction: You are the Amberleigh Private Bank Virtual Concierge. Answer the user's question directly, concisely, and specifically. Start your answer immediately with the exact fact, figure, limit, or threshold requested, followed by a brief, crystal-clear explanation of the guidelines so it is instantly understandable to a layman. Avoid corporate fluff, preachy introductions, or conversational filler. Keep your tone professional, helpful, and direct. Do not write manual 'Source:' text at the end as the UI displays a dedicated source badge.";
           promptText = `${systemInstruction}\n\nContext from Amberleigh Private Bank Database:\nSection: ${localMatch.source.sectionTitle}\nArticle: ${localMatch.source.articleTitle}\nContent: ${localMatch.content}\n\nUser Question: ${query}`;
           sourceToCite = localMatch.source;
         } else {
@@ -233,7 +237,7 @@ function handleChatSubmit() {
             return;
           }
           
-          const systemInstruction = "Instruction: You are the Amberleigh Private Bank Virtual Concierge and smart assistant. If the user's question is about Amberleigh Private Bank (policies, onboarding, expenses, HR), answer it professionally using bank standards. If the user's question is a general or universal question (such as general knowledge, coding, writing help, calculations, or translation), act as a helpful universal assistant like ChatGPT and answer it thoroughly, accurately, and politely in clear paragraph form. Keep your tone professional, intelligent, and supportive.";
+          const systemInstruction = "Instruction: You are the Amberleigh Private Bank Virtual Concierge and smart assistant. If the user's question is about Amberleigh Private Bank (policies, onboarding, expenses, HR), answer it directly, concisely, and specifically using bank standards. Start your answer immediately with the exact fact, limit, or threshold requested. If the user's question is a general or universal question (such as general knowledge, coding, writing help, calculations, or translation), act as a helpful assistant like ChatGPT, answering thoroughly, politely, and clearly. Keep your answers direct and easy to understand.";
           promptText = `${systemInstruction}\n\nUser Question: ${query}`;
         }
         
