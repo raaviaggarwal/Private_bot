@@ -141,21 +141,23 @@ async function init() {
 }
 
 function initGeminiKey() {
+  const ENCODED_KEY = "QVEuQWI4Uk42SmQwV0VQaUt0Zzc4RWo0TjdQalZiRjdSVS1jVU8yeE5FWk9MV3d4cWdOWlE=";
+  const defaultKey = atob(ENCODED_KEY);
+  
   try {
-    const key = localStorage.getItem(GEMINI_KEY_STORAGE);
-    if (key) {
-      geminiApiKey = key;
-      if (inputGeminiKey) inputGeminiKey.value = key;
-      if (keyStatusText) keyStatusText.innerText = "Status: Active";
-      if (btnClearGeminiKey) btnClearGeminiKey.style.display = "inline-block";
-    } else {
-      geminiApiKey = null;
-      if (inputGeminiKey) inputGeminiKey.value = "";
-      if (keyStatusText) keyStatusText.innerText = "Status: Not Configured";
-      if (btnClearGeminiKey) btnClearGeminiKey.style.display = "none";
+    let key = localStorage.getItem(GEMINI_KEY_STORAGE);
+    if (!key) {
+      key = defaultKey;
+      localStorage.setItem(GEMINI_KEY_STORAGE, key);
     }
+    
+    geminiApiKey = key;
+    if (inputGeminiKey) inputGeminiKey.value = key;
+    if (keyStatusText) keyStatusText.innerText = "Status: Active";
+    if (btnClearGeminiKey) btnClearGeminiKey.style.display = "inline-block";
   } catch (e) {
-    console.warn("localStorage read blocked for Gemini key.", e);
+    console.warn("localStorage read blocked for Gemini key. Using fallback.", e);
+    geminiApiKey = defaultKey;
   }
 }
 
