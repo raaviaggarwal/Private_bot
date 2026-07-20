@@ -1,14 +1,7 @@
-// Authentic corporate knowledge base for Amberleigh Private Bank
-// Extracted from official Bank policy documents:
-// 1. HR-GDE-009: New Joiner Onboarding Guide
-// 2. FIN-POL-008: Expense & Travel Policy
-// 3. HR-POL-006: Medical & Health Benefits Policy
-// 4. ISEC-POL-005: Information Security & Data Privacy Policy
-// 5. COMP-POL-003: Compliance & AML/KYC Policy
-// 6. COMP-POL-002: Code of Conduct & Ethics Policy
-// 7. HR-POL-001: HR Policy Handbook
+// Knowledge Base Database Manager module
+import { STOP_WORDS } from './config.js';
 
-const DEFAULT_KNOWLEDGE = {
+export const DEFAULT_KNOWLEDGE = {
   onboarding: {
     title: "New Joiner Onboarding",
     icon: "briefcase",
@@ -256,15 +249,10 @@ const DEFAULT_KNOWLEDGE = {
   }
 };
 
-// Key used in local storage (bumped to v2 to auto-reset browser cache)
 const STORAGE_KEY = 'amberleigh_chatbot_knowledge_base_v2';
-
-// Backup in-memory storage to survive local protocol blocks
 let backupInMemoryKnowledge = null;
 
-// API to manage the database state
-const KnowledgeBase = {
-  // Retrieve the full database from localStorage or load the defaults
+export const KnowledgeBase = {
   // Load policy database directly from live backend JSON files in /data directory
   loadFromBackend: async function() {
     const jsonFiles = [
@@ -292,7 +280,7 @@ const KnowledgeBase = {
           }
         }
       } catch (err) {
-        // Fallback silently if running without HTTP server
+        // Fallback silently if running locally without HTTP server
       }
     }
     
@@ -329,7 +317,6 @@ const KnowledgeBase = {
     return defaults;
   },
 
-  // Save database back to localStorage
   save: function(data) {
     backupInMemoryKnowledge = data;
     try {
@@ -341,18 +328,15 @@ const KnowledgeBase = {
     }
   },
 
-  // Reset database back to default initial values
   reset: function() {
     const defaults = JSON.parse(JSON.stringify(DEFAULT_KNOWLEDGE));
     this.save(defaults);
     return defaults;
   },
 
-  // Add or update an article in the database
   saveArticle: function(sectionKey, article) {
     const data = this.get();
     if (!data[sectionKey]) {
-      // Create section if it doesn't exist
       data[sectionKey] = {
         title: sectionKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
         icon: "file-text",
@@ -365,10 +349,8 @@ const KnowledgeBase = {
     const existingIndex = articles.findIndex(a => a.id === article.id);
 
     if (existingIndex > -1) {
-      // Update existing
       articles[existingIndex] = { ...articles[existingIndex], ...article, lastUpdated: new Date().toISOString().split('T')[0] };
     } else {
-      // Create new
       articles.push({
         ...article,
         id: article.id || `art-${Date.now()}`,
@@ -380,7 +362,6 @@ const KnowledgeBase = {
     return data;
   },
 
-  // Delete an article from a section
   deleteArticle: function(sectionKey, articleId) {
     const data = this.get();
     if (data[sectionKey]) {
@@ -390,7 +371,6 @@ const KnowledgeBase = {
     return data;
   },
 
-  // Add a brand new section
   addSection: function(sectionKey, title, icon, description) {
     const data = this.get();
     if (!data[sectionKey]) {
@@ -405,7 +385,6 @@ const KnowledgeBase = {
     return data;
   },
 
-  // Delete a whole section
   deleteSection: function(sectionKey) {
     const data = this.get();
     if (data[sectionKey]) {
@@ -415,3 +394,64 @@ const KnowledgeBase = {
     return data;
   }
 };
+
+// RAG search engine matching logic
+export function searchKnowledgeBase(kbData, query) {
+  const cleanTokens = query
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter(token => token.length > 0 && !STOP_WORDS.has(token));
+    
+  if (cleanTokens.length === 0) return null;
+  
+  let bestMatch = null;
+  let highestScore = 0;
+  
+  Object.keys(kbData).forEach(sectionKey => {
+    const section = kbData[sectionKey];
+    if (!section.articles) return;
+    
+    section.articles.forEach(article => {
+      let score = 0;
+      const titleLower = article.title.toLowerCase();
+      const contentLower = article.content.toLowerCase();
+      const titleWords = titleLower.split(/\s+/);
+      const contentWords = contentLower.split(/\s+/);
+      
+      cleanTokens.forEach(token => {
+        const isShort = token.length < 4;
+        
+        if (isShort ? titleWords.includes(token) : titleLower.includes(token)) {
+          score += 15;
+        }
+        
+        if (article.keywords && article.keywords.some(kw => isShort ? kw === token : kw.includes(token))) {
+          score += 20;
+        }
+        
+        if (isShort ? contentWords.includes(token) : contentLower.includes(token)) {
+          score += 5;
+        }
+      });
+      
+      const cleanQuery = query.toLowerCase().replace(/[^\w\s]/g, '');
+      if (titleLower.includes(cleanQuery)) score += 40;
+      if (contentLower.includes(cleanQuery)) score += 30;
+      
+      if (score > highestScore && score >= 5) {
+        highestScore = score;
+        bestMatch = {
+          content: article.content,
+          source: {
+            sectionKey: sectionKey,
+            sectionTitle: section.title,
+            articleTitle: article.title
+          }
+        };
+      }
+    });
+  });
+  
+  return bestMatch;
+}
