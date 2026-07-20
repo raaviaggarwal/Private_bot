@@ -40,6 +40,38 @@ const server = http.createServer((req, res) => {
     return;
   }
   
+  // API Endpoint: Dynamically merge and serve all policy files from data/ directory
+  if (safePath === '/api/data') {
+    const dataDir = path.join(__dirname, 'data');
+    let mergedData = {};
+    try {
+      const files = fs.readdirSync(dataDir);
+      for (const file of files) {
+        if (path.extname(file).toLowerCase() === '.json') {
+          const filePath = path.join(dataDir, file);
+          const fileContent = fs.readFileSync(filePath, 'utf8');
+          const json = JSON.parse(fileContent);
+          if (json.sectionKey) {
+            mergedData[json.sectionKey] = json;
+          } else if (json.sections) {
+            Object.assign(mergedData, json.sections);
+          }
+        }
+      }
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      });
+      res.end(JSON.stringify(mergedData), 'utf-8');
+      return;
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: "Failed to read policy database files." }), 'utf-8');
+      return;
+    }
+  }
+  
   if (safePath === '/') safePath = '/index.html';
   
   const filePath = path.join(__dirname, safePath);

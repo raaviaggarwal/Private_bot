@@ -255,6 +255,22 @@ let backupInMemoryKnowledge = null;
 export const KnowledgeBase = {
   // Load policy database directly from live backend JSON files in /data directory
   loadFromBackend: async function() {
+    // 1. Try to load merged database from the dynamic backend api/data endpoint first
+    try {
+      const response = await fetch('/api/data');
+      if (response.ok) {
+        const mergedData = await response.json();
+        if (mergedData && Object.keys(mergedData).length > 0) {
+          console.log("Loaded policy database live from server /api/data API");
+          backupInMemoryKnowledge = mergedData;
+          this.save(mergedData);
+          return mergedData;
+        }
+      }
+    } catch (err) {
+      // Fallback to fetching individual static files
+    }
+
     const jsonFiles = [
       'data/onboarding_guide.json',
       'data/expense_travel_policy.json',
